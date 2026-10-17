@@ -1,0 +1,152 @@
+{
+  "nodes": [
+    {
+      "id": "main_gate",
+      "x": 60,
+      "y": 275
+    },
+    {
+      "id": "graha",
+      "x": 177,
+      "y": 64
+    },
+    {
+      "id": "d3_pens",
+      "x": 511,
+      "y": 60
+    },
+    {
+      "id": "robotics",
+      "x": 940,
+      "y": 66
+    },
+    {
+      "id": "informatics",
+      "x": 880,
+      "y": 202
+    },
+    {
+      "id": "manarul_ilmi",
+      "x": 172,
+      "y": 453
+    },
+    {
+      "id": "library",
+      "x": 517,
+      "y": 329
+    },
+    {
+      "id": "canteen",
+      "x": 427,
+      "y": 523
+    },
+    {
+      "id": "biology",
+      "x": 338,
+      "y": 640
+    },
+    {
+      "id": "chemical_eng",
+      "x": 840,
+      "y": 442
+    },
+    {
+      "id": "electrical_eng",
+      "x": 793,
+      "y": 607
+    }
+  ],
+  "edges": [
+    {
+      "from": "main_gate",
+      "to": "graha",
+      "cost": 550
+    },
+    {
+      "from": "main_gate",
+      "to": "manarul_ilmi",
+      "cost": 450
+    },
+    {
+      "from": "graha",
+      "to": "d3_pens",
+      "cost": 280
+    },
+    {
+      "from": "d3_pens",
+      "to": "robotics",
+      "cost": 550
+    },
+    {
+      "from": "d3_pens",
+      "to": "informatics",
+      "cost": 750
+    },
+    {
+      "from": "robotics",
+      "to": "informatics",
+      "cost": 300
+    },
+    {
+      "from": "informatics",
+      "to": "library",
+      "cost": 350
+    },
+    {
+      "from": "informatics",
+      "to": "chemical_eng",
+      "cost": 500
+    },
+    {
+      "from": "informatics",
+      "to": "electrical_eng",
+      "cost": 1400
+    },
+    {
+      "from": "library",
+      "to": "manarul_ilmi",
+      "cost": 350
+    },
+    {
+      "from": "library",
+      "to": "canteen",
+      "cost": 400
+    },
+    {
+      "from": "library",
+      "to": "chemical_eng",
+      "cost": 200
+    },
+    {
+      "from": "manarul_ilmi",
+      "to": "canteen",
+      "cost": 300
+    },
+    {
+      "from": "manarul_ilmi",
+      "to": "biology",
+      "cost": 500
+    },
+    {
+      "from": "canteen",
+      "to": "biology",
+      "cost": 260
+    },
+    {
+      "from": "canteen",
+      "to": "electrical_eng",
+      "cost": 650
+    },
+    {
+      "from": "chemical_eng",
+      "to": "electrical_eng",
+      "cost": 300
+    },
+    {
+      "from": "biology",
+      "to": "electrical_eng",
+      "cost": 600
+    }
+  ],
+  "goal": "informatics"
+}

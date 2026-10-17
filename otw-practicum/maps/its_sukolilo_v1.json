@@ -1,0 +1,191 @@
+{
+  "nodes": [
+    {
+      "id": "gate_main",
+      "name": "Bundaran ITS",
+      "x": 70,
+      "y": 202,
+      "label": "Bundaran ITS"
+    },
+    {
+      "id": "graha_10_nopember",
+      "name": "Graha Sepuluh Nopember",
+      "x": 202,
+      "y": 70,
+      "label": "Graha 10 Nopember"
+    },
+    {
+      "id": "robotika",
+      "name": "Gedung Robotika ITS",
+      "x": 920,
+      "y": 95
+    },
+    {
+      "id": "gedung_d3",
+      "name": "Gedung D3",
+      "x": 330,
+      "y": 194
+    },
+    {
+      "id": "informatics",
+      "name": "Departemen Informatika",
+      "x": 930,
+      "y": 245,
+      "label": "Departemen Informatika"
+    },
+    {
+      "id": "geomatika",
+      "name": "Teknik Geomatika",
+      "x": 580,
+      "y": 281
+    },
+    {
+      "id": "rectorate",
+      "name": "Rektorat Pascasarjana",
+      "x": 653,
+      "y": 341,
+      "label": "Rektorat"
+    },
+    {
+      "id": "pasca_its",
+      "name": "Gedung UPMB dan Pascasarjana ITS",
+      "x": 655,
+      "y": 309
+    },
+    {
+      "id": "library",
+      "name": "Perpustakaan ITS",
+      "x": 681,
+      "y": 380,
+      "label": "Perpustakaan"
+    },
+    {
+      "id": "masjid_manarul_ilmi",
+      "name": "Masjid Manarul Ilmi",
+      "x": 392,
+      "y": 425,
+      "label": "Masjid Manarul Ilmi"
+    },
+    {
+      "id": "teknik_sipil",
+      "name": "Teknik Sipil",
+      "x": 479,
+      "y": 321
+    },
+    {
+      "id": "canteen",
+      "name": "Kantin Pusat ITS",
+      "x": 517,
+      "y": 527,
+      "label": "Kantin Pusat"
+    },
+    {
+      "id": "teknik_kimia",
+      "name": "Teknik Kimia ITS",
+      "x": 829,
+      "y": 471
+    },
+    {
+      "id": "taman_alumni",
+      "name": "Taman Alumni ITS",
+      "x": 291,
+      "y": 328
+    },
+    {
+      "id": "tower",
+      "name": "Stadion ITS",
+      "x": 309,
+      "y": 630,
+      "label": "Stadion ITS"
+    }
+  ],
+  "edges": [
+    {
+      "from": "gate_main",
+      "to": "graha_10_nopember",
+      "cost": 543
+    },
+    {
+      "from": "gate_main",
+      "to": "taman_alumni",
+      "cost": 448
+    },
+    {
+      "from": "graha_10_nopember",
+      "to": "gedung_d3",
+      "cost": 295
+    },
+    {
+      "from": "robotika",
+      "to": "gedung_d3",
+      "cost": 1343
+    },
+    {
+      "from": "robotika",
+      "to": "informatics",
+      "cost": 656
+    },
+    {
+      "from": "informatics",
+      "to": "geomatika",
+      "cost": 611
+    },
+    {
+      "from": "geomatika",
+      "to": "rectorate",
+      "cost": 213
+    },
+    {
+      "from": "geomatika",
+      "to": "pasca_its",
+      "cost": 138
+    },
+    {
+      "from": "rectorate",
+      "to": "pasca_its",
+      "cost": 115
+    },
+    {
+      "from": "rectorate",
+      "to": "library",
+      "cost": 118
+    },
+    {
+      "from": "pasca_its",
+      "to": "library",
+      "cost": 186
+    },
+    {
+      "from": "library",
+      "to": "teknik_kimia",
+      "cost": 448
+    },
+    {
+      "from": "masjid_manarul_ilmi",
+      "to": "taman_alumni",
+      "cost": 259
+    },
+    {
+      "from": "masjid_manarul_ilmi",
+      "to": "tower",
+      "cost": 601
+    },
+    {
+      "from": "teknik_sipil",
+      "to": "canteen",
+      "cost": 814
+    },
+    {
+      "from": "teknik_sipil",
+      "to": "teknik_kimia",
+      "cost": 594
+    },
+    {
+      "from": "canteen",
+      "to": "tower",
+      "cost": 557
+    }
+  ],
+  "goal": "informatics",
+  "_attribution": "© OpenStreetMap contributors (ODbL); walking distances from OSMnx"
+}
