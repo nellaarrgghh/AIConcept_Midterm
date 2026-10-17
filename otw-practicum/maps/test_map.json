@@ -1,0 +1,21 @@
+{
+  "_comment": "STUB test map written by BE-1 for engine tests. Not the real campus. FE-1 replaces it with maps/its_sukolilo.json (same format).",
+  "nodes": [
+    {"id": "gate_main",   "x": 100, "y": 350},
+    {"id": "library",     "x": 350, "y": 150},
+    {"id": "rectorate",   "x": 350, "y": 550},
+    {"id": "canteen",     "x": 600, "y": 300},
+    {"id": "tower",       "x": 650, "y": 600},
+    {"id": "informatics", "x": 900, "y": 400}
+  ],
+  "edges": [
+    {"from": "gate_main", "to": "library",     "cost": 120},
+    {"from": "gate_main", "to": "rectorate",   "cost": 150},
+    {"from": "library",   "to": "canteen",     "cost": 150},
+    {"from": "rectorate", "to": "canteen",     "cost": 140},
+    {"from": "rectorate", "to": "tower",       "cost": 130},
+    {"from": "canteen",   "to": "informatics", "cost": 130},
+    {"from": "tower",     "to": "informatics", "cost": 140}
+  ],
+  "goal": "informatics"
+}
