@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Pursuit - ITS Sukolilo Chase</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="top-bar">
+      <div class="brand">
+        <h1>OTW Practicum: Campus Pursuit</h1>
+      </div>
+      <div class="controls">
+        <label for="difficulty-select">Difficulty:</label>
+        <select id="difficulty-select">
+          <option value="easy">Easy (UCS)</option>
+          <option value="medium" selected>Medium (Minimax)</option>
+          <option value="hard">Hard (Alpha-Beta)</option>
+        </select>
+        <label class="checkbox-label" for="show-distances-checkbox">
+          <input type="checkbox" id="show-distances-checkbox" checked>
+          Show distances
+        </label>
+        <button id="new-game-btn" class="btn primary-btn">New Game</button>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <div class="hud-panel">
+        <div class="hud-item avatar-item">
+          <img id="hud-avatar" src="/assets/avg_player.jpg" alt="Player Sprite" class="hud-avatar-img">
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Turn</span>
+          <span id="turn-display" class="hud-value">0 / 6</span>
+        </div>
+        <div class="hud-item message-item">
+          <span class="hud-label">Status</span>
+          <span id="status-message" class="hud-value">Click a highlighted green node to pick your start.</span>
+        </div>
+      </div>
+
+      <div class="canvas-wrapper">
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Overlay win/lose screens -->
+        <div id="endgame-modal" class="modal-overlay hidden">
+          <div class="modal-card">
+            <h2 id="modal-title">Game Over</h2>
+            <img id="modal-image" src="/assets/win_player.jpg" alt="Outcome" class="modal-img">
+            <p id="modal-message"></p>
+            <button id="modal-restart-btn" class="btn primary-btn">Play Again</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="log-panel">
+        <h3>Move Log</h3>
+        <ul id="move-log-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      const canvas = document.getElementById("game-canvas");
+      const difficultySelect = document.getElementById("difficulty-select");
+      const showDistancesCheckbox = document.getElementById("show-distances-checkbox");
+      const newGameBtn = document.getElementById("new-game-btn");
+      const turnDisplay = document.getElementById("turn-display");
+      const statusMessage = document.getElementById("status-message");
+      const moveLogList = document.getElementById("move-log-list");
+      const endgameModal = document.getElementById("endgame-modal");
+      const modalTitle = document.getElementById("modal-title");
+      const modalImage = document.getElementById("modal-image");
+      const modalMessage = document.getElementById("modal-message");
+      const modalRestartBtn = document.getElementById("modal-restart-btn");
+      const hudAvatar = document.getElementById("hud-avatar");
+
+      const SPRITE_URLS = {
+        avg: "/assets/avg_player.jpg",
+        scared: "/assets/scared_player.jpg",
+        lose: "/assets/lose_player.jpg",
+        win: "/assets/win_player.jpg"
+      };
+
+      let currentMap = null;
+      let currentState = null;
+      let choosingStart = true;
+      let isBusy = false;
+      let movesHistory = [];
+      let playerStartNode = null;
+      let aiStartNode = null;
+
+      function setBusy(busy) {
+        isBusy = busy;
+        canvas.style.cursor = busy ? "wait" : (choosingStart ? "pointer" : "default");
+        difficultySelect.disabled = busy;
+        newGameBtn.disabled = busy;
+      }
+
+      function getTurnLimit() {
+        if (currentState && currentState.turn_limit !== undefined) return currentState.turn_limit;
+        if (currentMap && currentMap.turn_limit !== undefined) return currentMap.turn_limit;
+        return 6;
+      }
+
+      function updateTurnDisplay() {
+        const current = currentState ? currentState.turn : 0;
+        turnDisplay.textContent = `${current} / ${getTurnLimit()}`;
+      }
+
+      async function init() {
+        try {
+          const res = await fetch("/map");
+          currentMap = await res.json();
+          resetGame();
+        } catch (e) {
+          statusMessage.textContent = "Error loading map from server: " + e.message;
+        }
+      }
+
+      function updateSpriteState(state) {
+        if (!state) {
+          CampusMapRenderer.setStudentState("avg");
+          hudAvatar.src = SPRITE_URLS.avg;
+          return;
+        }
+
+        const scaredDist = CampusMapRenderer.SCARED_DISTANCE || 1;
+        const dist = CampusMapRenderer.hopDistance(currentMap, state.student, state.proctor);
+
+        if (state.winner === "student") {
+          CampusMapRenderer.setStudentState("win");
+          hudAvatar.src = SPRITE_URLS.win;
+        } else if (state.winner === "proctor") {
+          CampusMapRenderer.setStudentState("lose");
+          hudAvatar.src = SPRITE_URLS.lose;
+        } else if (dist <= scaredDist) {
+          CampusMapRenderer.setStudentState("scared");
+          hudAvatar.src = SPRITE_URLS.scared;
+        } else {
+          CampusMapRenderer.setStudentState("avg");
+          hudAvatar.src = SPRITE_URLS.avg;
+        }
+      }
+
+      function resetGame() {
+        if (isBusy) return;
+        currentState = null;
+        choosingStart = true;
+        setBusy(false);
+        movesHistory = [];
+        playerStartNode = null;
+        aiStartNode = null;
+        moveLogList.innerHTML = "";
+        endgameModal.classList.add("hidden");
+        updateTurnDisplay();
+        statusMessage.textContent = "Select your start position: click any highlighted node.";
+
+        updateSpriteState(null);
+
+        const allowedStarts = (currentMap && currentMap.allowed_starts) || [];
+
+        CampusMapRenderer.render(canvas, currentMap, {
+          choosingStart: true,
+          allowedStarts: allowedStarts,
+          showDistances: showDistancesCheckbox.checked,
+          proctorPhoto: "/assets/proctor.jpeg"
+        });
+      }
+
+      function getClickedNode(event) {
+        if (!currentMap) return null;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = 1000 / rect.width;
+        const scaleY = 700 / rect.height;
+        const clickX = (event.clientX - rect.left) * scaleX;
+        const clickY = (event.clientY - rect.top) * scaleY;
+
+        for (const node of currentMap.nodes) {
+          const dx = node.x - clickX;
+          const dy = node.y - clickY;
+          if (Math.hypot(dx, dy) <= 25) {
+            return node.id;
+          }
+        }
+        return null;
+      }
+
+      async function onCanvasClick(e) {
+        if (isBusy) return;
+        const clickedNodeId = getClickedNode(e);
+        if (!clickedNodeId) return;
+
+        if (choosingStart) {
+          const allowedStarts = (currentMap && currentMap.allowed_starts) || [];
+          if (!allowedStarts.includes(clickedNodeId)) {
+            statusMessage.textContent = "Cannot start on or near the goal! Pick another node.";
+            return;
+          }
+          await startNewGame(clickedNodeId);
+        } else if (currentState && !currentState.winner) {
+          const legal = getLegalMoves();
+          if (!legal.includes(clickedNodeId)) {
+            statusMessage.textContent = "Illegal move! Move to an adjacent node or stay in place.";
+            return;
+          }
+          await makeMove(clickedNodeId);
+        }
+      }
+
+      function getLegalMoves() {
+        if (!currentState || !currentMap) return [];
+        const studentPos = currentState.student;
+        const neighbors = [studentPos];
+        currentMap.edges.forEach(function (e) {
+          if (e.from === studentPos) neighbors.push(e.to);
+          if (e.to === studentPos) neighbors.push(e.from);
+        });
+        return neighbors;
+      }
+
+      async function startNewGame(selectedStart) {
+        setBusy(true);
+        playerStartNode = selectedStart;
+        const difficulty = difficultySelect.value;
+        try {
+          const res = await fetch("/new_game", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              difficulty: difficulty,
+              player_start: selectedStart
+            })
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || "Failed to start game");
+          }
+          currentState = await res.json();
+          aiStartNode = currentState.proctor;
+          choosingStart = false;
+          statusMessage.textContent = "Your turn! Click a highlighted blue node to move or wait.";
+          updateTurnDisplay();
+          addLog(`Game started: Player at ${nodeLabel(currentState.student)}, Proctor at ${nodeLabel(currentState.proctor)}`);
+
+          updateSpriteState(currentState);
+          await renderCurrentScene();
+        } catch (e) {
+          statusMessage.textContent = "Error: " + e.message;
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function makeMove(targetNodeId) {
+        setBusy(true);
+        const fromStudent = currentState.student;
+        const fromProctor = currentState.proctor;
+        statusMessage.textContent = "Moving...";
+
+        try {
+          const res = await fetch("/move", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              state: currentState,
+              move: targetNodeId,
+              moves: movesHistory,
+              player_start: playerStartNode,
+              ai_start: aiStartNode
+            })
+          });
+
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || "Move failed");
+          }
+
+          const data = await res.json();
+          const nextState = data.state;
+          const aiMove = data.ai_move;
+          if (data.moves) movesHistory = data.moves;
+
+          // Animate Student Move
+          if (fromStudent !== targetNodeId) {
+            await CampusMapRenderer.animateMove(canvas, currentMap, fromStudent, targetNodeId, "student", {
+              state: { student: fromStudent, proctor: fromProctor },
+              showDistances: showDistancesCheckbox.checked,
+              proctorPhoto: "/assets/proctor.jpeg"
+            });
+          }
+          addLog(`Turn ${currentState.turn + 1}: Student moved to ${nodeLabel(targetNodeId)}`);
+
+          // Animate Proctor Move (always animated when proctor moves)
+          if (aiMove && fromProctor !== aiMove) {
+            await CampusMapRenderer.animateMove(canvas, currentMap, fromProctor, aiMove, "proctor", {
+              state: { student: targetNodeId, proctor: fromProctor },
+              showDistances: showDistancesCheckbox.checked,
+              proctorPhoto: "/assets/proctor.jpeg"
+            });
+            addLog(`Turn ${nextState.turn}: Proctor moved to ${nodeLabel(aiMove)}`);
+          } else if (aiMove) {
+            addLog(`Turn ${nextState.turn}: Proctor waited at ${nodeLabel(fromProctor)}`);
+          }
+
+          currentState = nextState;
+          updateTurnDisplay();
+
+          updateSpriteState(currentState);
+
+          if (currentState.winner) {
+            handleGameOver(currentState);
+          } else {
+            statusMessage.textContent = "Your turn! Click a highlighted node to move.";
+            await renderCurrentScene();
+          }
+        } catch (e) {
+          statusMessage.textContent = "Error: " + e.message;
+          await renderCurrentScene();
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      function handleGameOver(state) {
+        endgameModal.classList.remove("hidden");
+        if (state.winner === "student") {
+          modalTitle.textContent = "You Win!";
+          modalMessage.textContent = "Congratulations! You safely arrived at the Department of Informatics!";
+          modalImage.src = SPRITE_URLS.win;
+          statusMessage.textContent = "Victory! Student reached Informatics!";
+          addLog("RESULT: Student reached Informatics! VICTORY!");
+        } else {
+          // If state.winner === 'proctor', check if caught on same node or timeout
+          const isCaught = (state.student === state.proctor);
+          if (isCaught) {
+            modalTitle.textContent = "Caught by the Proctor!";
+            modalMessage.textContent = "Oh no! The TA/Proctor caught you!";
+            statusMessage.textContent = "Defeat! Proctor caught the Student!";
+            addLog("RESULT: Proctor caught the Student. GAME OVER.");
+          } else {
+            modalTitle.textContent = "Time's up!";
+            modalMessage.textContent = "The turn limit expired before you could reach Informatics.";
+            statusMessage.textContent = "Defeat! Turn limit ran out (Time's up).";
+            addLog("RESULT: Turn limit reached. TIME'S UP.");
+          }
+          modalImage.src = SPRITE_URLS.lose;
+        }
+      }
+
+      function renderCurrentScene() {
+        const legal = getLegalMoves();
+        return CampusMapRenderer.render(canvas, currentMap, {
+          state: currentState,
+          legalMoves: legal,
+          choosingStart: false,
+          showDistances: showDistancesCheckbox.checked,
+          proctorPhoto: "/assets/proctor.jpeg"
+        });
+      }
+
+      function nodeLabel(id) {
+        if (!currentMap) return id;
+        const n = currentMap.nodes.find(x => x.id === id);
+        return n ? (n.label || n.id) : id;
+      }
+
+      function addLog(text) {
+        const li = document.createElement("li");
+        li.textContent = text;
+        moveLogList.appendChild(li);
+        moveLogList.scrollTop = moveLogList.scrollHeight;
+      }
+
+      showDistancesCheckbox.addEventListener("change", function () {
+        if (choosingStart) {
+          const allowedStarts = (currentMap && currentMap.allowed_starts) || [];
+          CampusMapRenderer.render(canvas, currentMap, {
+            choosingStart: true,
+            allowedStarts: allowedStarts,
+            showDistances: showDistancesCheckbox.checked,
+            proctorPhoto: "/assets/proctor.jpeg"
+          });
+        } else {
+          renderCurrentScene();
+        }
+      });
+
+      canvas.addEventListener("click", onCanvasClick);
+      newGameBtn.addEventListener("click", resetGame);
+      modalRestartBtn.addEventListener("click", resetGame);
+
+      init();
+    })();
+  </script>
+</body>
+</html>

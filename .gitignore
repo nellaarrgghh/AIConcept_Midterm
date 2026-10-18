@@ -1,6 +1,7 @@
 __pycache__/
 .venv/
 .DS_Store
-
-
 .pytest_cache/
+cache/
+otw-practicum/web/replays/*.json
+!otw-practicum/web/replays/.gitkeep

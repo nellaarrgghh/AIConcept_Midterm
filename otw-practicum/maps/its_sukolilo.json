@@ -2,56 +2,67 @@
   "nodes": [
     {
       "id": "main_gate",
+      "label": "Main Gate",
       "x": 60,
       "y": 275
     },
     {
       "id": "graha",
+      "label": "Graha",
       "x": 177,
       "y": 64
     },
     {
       "id": "d3_pens",
+      "label": "D3 PENS",
       "x": 511,
       "y": 60
     },
     {
       "id": "robotics",
+      "label": "Robotics",
       "x": 940,
       "y": 66
     },
     {
       "id": "informatics",
+      "label": "Informatics",
       "x": 880,
       "y": 202
     },
     {
       "id": "manarul_ilmi",
+      "label": "Manarul Ilmi",
       "x": 172,
       "y": 453
     },
     {
       "id": "library",
+      "label": "Library",
       "x": 517,
       "y": 329
     },
     {
       "id": "canteen",
+      "label": "Canteen",
       "x": 427,
       "y": 523
     },
     {
       "id": "biology",
+      "label": "Biology",
       "x": 338,
       "y": 640
     },
     {
       "id": "chemical_eng",
+      "label": "Chemical Eng.",
       "x": 840,
       "y": 442
     },
     {
       "id": "electrical_eng",
+      "label": "Electrical Eng.",
       "x": 793,
       "y": 607
     }
@@ -100,7 +111,8 @@
     {
       "from": "informatics",
       "to": "electrical_eng",
-      "cost": 1400
+      "cost": 1400,
+      "curve": -160
     },
     {
       "from": "library",

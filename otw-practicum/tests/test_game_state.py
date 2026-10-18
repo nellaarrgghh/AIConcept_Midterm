@@ -8,8 +8,8 @@ import os
 import pytest
 
 from engine.game_state import (
-    MIN_START_DISTANCE, GameState, allowed_player_starts, build_adjacency,
-    default_turn_limit, load_map, pick_ai_start, shortest_distances,
+    DEFAULT_MIN_START_HOPS, GameState, allowed_player_starts, build_adjacency,
+    default_turn_limit, hop_distances, load_map, pick_ai_start, shortest_distances,
 )
 
 MAP_PATH = os.path.join(os.path.dirname(__file__), "..", "maps", "test_map.json")
@@ -26,13 +26,36 @@ def new_game(map_data, student, proctor, **kwargs):
 
 # --- legal moves ------------------------------------------------------------
 
-def test_legal_moves_include_waiting(map_data):
+def test_legal_moves_student_may_wait_proctor_may_not(map_data):
     s = new_game(map_data, "gate_main", "tower")
-    assert s.legal_moves() == ["gate_main", "library", "rectorate"]  # wait first, then neighbors
+    assert s.legal_moves() == ["gate_main", "library", "rectorate"]  # Student: wait first, then neighbors
 
     s = s.apply("library")  # now it is the Proctor's turn
     assert s.to_move == "proctor"
-    assert s.legal_moves() == ["tower", "rectorate", "informatics"]
+    assert s.legal_moves() == ["rectorate", "informatics"]  # Proctor: neighbors only, no waiting
+    with pytest.raises(ValueError):
+        s.apply("tower")  # waiting is illegal for the Proctor
+
+
+def test_proctor_never_has_wait_move_on_any_state(map_data):
+    adj = build_adjacency(map_data)
+    goal = map_data["goal"]
+    for student in adj:
+        for proctor in adj:
+            for turn in range(5):
+                s = GameState(adj, goal, student, proctor, "proctor", turn, 5)
+                if s.is_terminal():
+                    continue
+                assert proctor not in s.legal_moves()
+
+
+def test_proctor_without_neighbors_does_not_crash():
+    # Isolated Proctor node: it may stay put so the game can go on.
+    adj = {"a": {"g": 1}, "g": {"a": 1}, "island": {}}
+    s = GameState(adj, "g", "a", "island", "proctor", 0, 3)
+    assert s.legal_moves() == ["island"]
+    s2 = s.apply("island")
+    assert (s2.proctor, s2.to_move, s2.turn) == ("island", "student", 1)
 
 
 def test_illegal_move_is_rejected(map_data):
@@ -92,11 +115,12 @@ def test_proctor_wins_when_student_walks_into_proctor(map_data):
 
 def test_proctor_wins_at_turn_limit(map_data):
     s = new_game(map_data, "gate_main", "tower", turn_limit=2)
-    for _ in range(2):  # both sides wait for 2 full rounds
+    # Student waits; the Proctor (which cannot wait) shuttles tower <-> informatics.
+    for proctor_move in ("informatics", "tower"):
         assert s.winner() is None
         assert s.utility("student") == 0
         s = s.apply(s.student)
-        s = s.apply(s.proctor)
+        s = s.apply(proctor_move)
     assert s.turn == 2
     assert s.winner() == "proctor"
     assert s.is_terminal()
@@ -118,11 +142,17 @@ def test_default_turn_limit_uses_hops(map_data):
 
 # --- player start rule ----------------------------------------------------------
 
-def test_allowed_player_starts_respect_min_distance(map_data):
-    # Walking distance to informatics on the test map:
-    # gate_main 400, library 280, rectorate 270 (allowed); canteen 130, tower 140 (too close).
-    assert MIN_START_DISTANCE == 250
-    assert allowed_player_starts(map_data) == ["gate_main", "library", "rectorate"]
+def test_allowed_player_starts_respect_min_hops(map_data):
+    # Hop distance to informatics on the test map:
+    # canteen 1, tower 1 (too close); library 2, rectorate 2, gate_main 3 (allowed).
+    assert DEFAULT_MIN_START_HOPS == 2
+    assert hop_distances(build_adjacency(map_data), "informatics") == {
+        "informatics": 0, "canteen": 1, "tower": 1,
+        "library": 2, "rectorate": 2, "gate_main": 3}
+    assert allowed_player_starts(map_data, 2) == ["gate_main", "library", "rectorate"]
+    assert allowed_player_starts(map_data, 3) == ["gate_main"]
+    assert "informatics" not in allowed_player_starts(map_data, 0)  # never the goal
+    # Meter distances are still available for UCS-style checks.
     dist = shortest_distances(build_adjacency(map_data), "informatics")
     assert dist == {"informatics": 0, "canteen": 130, "tower": 140,
                     "rectorate": 270, "library": 280, "gate_main": 400}
@@ -131,7 +161,7 @@ def test_allowed_player_starts_respect_min_distance(map_data):
 @pytest.mark.parametrize("bad_start", ["informatics", "canteen", "tower", "not_a_node"])
 def test_player_cannot_start_on_or_near_goal(map_data, bad_start):
     with pytest.raises(ValueError):
-        pick_ai_start(map_data, bad_start, 0)
+        pick_ai_start(map_data, bad_start, 0, min_hops=2)
 
 
 # --- AI start -----------------------------------------------------------------

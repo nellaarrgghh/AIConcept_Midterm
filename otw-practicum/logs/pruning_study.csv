@@ -1,0 +1,11 @@
+depth,agent,avg_nodes_expanded,avg_time_per_move
+1,Minimax,4.22,1e-05
+1,AlphaBeta,4.22,1e-05
+2,Minimax,20.28,3e-05
+2,AlphaBeta,14.83,2e-05
+3,Minimax,75.03,0.0001
+3,AlphaBeta,40.56,6e-05
+4,Minimax,284.64,0.00038
+4,AlphaBeta,83.47,0.00012
+5,Minimax,1058.81,0.00144
+5,AlphaBeta,217.08,0.00031

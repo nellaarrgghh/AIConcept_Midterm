@@ -6,15 +6,17 @@ agents never re-implement them; they only call the methods below.
 
 Rules (frozen, see guide.md section 1 and docs/interface.md):
   * Two pieces on an undirected graph: the Student (human) and the Proctor (AI).
-  * Alternating turns, the Student moves first. A move is a node id: either a
-    neighbor of the current node, or the current node itself (= wait).
+  * Alternating turns, the Student moves first. A move is a node id: a
+    neighbor of the current node. The Student may also wait (move to its own
+    node); the Proctor may NOT wait (it only waits if it has no neighbor at
+    all, so the game never gets stuck).
   * Proctor wins if both pieces share a node (no matter who moved onto whom).
-  * Student wins on reaching the goal node ('informatics').
+  * Student wins on reaching the goal node (map_data["goal"]).
   * `turn` counts completed rounds and increases after the Proctor moves.
     When turn reaches turn_limit, the Proctor wins. So a Student who reaches
     the goal on the last round still wins.
-  * The player may not start on the goal or within MIN_START_DISTANCE meters
-    (shortest walking distance) of it.
+  * The player may not start on the goal or fewer than `min_hops` edges from
+    it (the server sets min_hops = MIN_START_HOPS = 2).
 """
 
 import heapq
@@ -26,9 +28,9 @@ from collections import deque
 STUDENT = "student"
 PROCTOR = "proctor"
 
-# The player's start must be at least this many meters (shortest walking
-# distance along edges) away from the goal. Change here if needed (200-300).
-MIN_START_DISTANCE = 250
+# Default minimum hop distance (edges) between the player's start and the goal.
+# The server defines its own MIN_START_HOPS constant and passes it explicitly.
+DEFAULT_MIN_START_HOPS = 2
 
 
 # ---------------------------------------------------------------------------
@@ -39,6 +41,58 @@ def load_map(path):
     """Read a map JSON file and return it as a dict."""
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def validate_map(map_data):
+    """
+    Validate map structure:
+      - goal is in nodes
+      - every edge endpoint exists as a node
+      - no duplicate edges (undirected)
+      - graph is connected
+      - goal is reachable from every node
+    Raises ValueError with a clear message if validation fails.
+    """
+    if "nodes" not in map_data or "edges" not in map_data or "goal" not in map_data:
+        raise ValueError("Map missing required fields ('nodes', 'edges', 'goal')")
+
+    node_ids = set()
+    for node in map_data["nodes"]:
+        if "id" not in node:
+            raise ValueError("Node is missing 'id'")
+        nid = node["id"]
+        if nid in node_ids:
+            raise ValueError("Duplicate node id %r in map" % nid)
+        node_ids.add(nid)
+
+    goal = map_data["goal"]
+    if goal not in node_ids:
+        raise ValueError("Goal node %r is not in the map nodes" % goal)
+
+    seen_edges = set()
+    for edge in map_data["edges"]:
+        if "from" not in edge or "to" not in edge or "cost" not in edge:
+            raise ValueError("Edge missing 'from', 'to', or 'cost': %r" % (edge,))
+        u, v = edge["from"], edge["to"]
+        if u not in node_ids:
+            raise ValueError("Edge endpoint %r does not exist as a node" % u)
+        if v not in node_ids:
+            raise ValueError("Edge endpoint %r does not exist as a node" % v)
+        if u == v:
+            raise ValueError("Self-loop edge on node %r is not allowed" % u)
+        canonical = (u, v) if u < v else (v, u)
+        if canonical in seen_edges:
+            raise ValueError("Duplicate edge between %r and %r" % (u, v))
+        seen_edges.add(canonical)
+
+    adj = build_adjacency(map_data)
+    # Check connectivity and goal reachability
+    dist_from_goal = hop_distances(adj, goal)
+    if len(dist_from_goal) != len(node_ids):
+        unreached = node_ids - set(dist_from_goal.keys())
+        raise ValueError("Graph is not connected; goal %r is not reachable from: %s"
+                         % (goal, ", ".join(unreached)))
+    return adj
 
 
 def build_adjacency(map_data):
@@ -104,31 +158,40 @@ def shortest_distances(adj, source):
     return dist
 
 
-def allowed_player_starts(map_data, min_distance=MIN_START_DISTANCE):
-    """Node ids the player may start on: at least `min_distance` meters from the goal."""
+def allowed_player_starts(map_data, min_hops=DEFAULT_MIN_START_HOPS):
+    """Node ids the player may start on: at least `min_hops` edges from the goal (never the goal)."""
     adj = build_adjacency(map_data)
-    dist = shortest_distances(adj, map_data["goal"])  # undirected, so goal->node == node->goal
+    hops = hop_distances(adj, map_data["goal"])  # undirected, so goal->node == node->goal
     return [node["id"] for node in map_data["nodes"]
-            if dist.get(node["id"], math.inf) >= min_distance]
+            if node["id"] != map_data["goal"] and hops.get(node["id"], math.inf) >= min_hops]
 
 
-def validate_player_start(map_data, player_start, min_distance=MIN_START_DISTANCE):
-    """Raise ValueError if the player's chosen start is unknown, the goal, or too close to it."""
+def validate_player_start(map_data, player_start, min_hops=0):
+    """
+    Raise ValueError if the player's chosen start is unknown, the goal, or
+    (when min_hops > 0) fewer than `min_hops` edges from the goal.
+    """
     node_ids = [node["id"] for node in map_data["nodes"]]
     if player_start not in node_ids:
         raise ValueError("Unknown player start %r" % player_start)
-    if player_start not in allowed_player_starts(map_data, min_distance):
-        raise ValueError("Player start %r is the goal or closer than %d m to it"
-                         % (player_start, min_distance))
+    if player_start == map_data["goal"]:
+        raise ValueError("Player start %r cannot be the goal" % player_start)
+    if min_hops > 0:
+        allowed = allowed_player_starts(map_data, min_hops)
+        if player_start not in allowed:
+            hops = hop_distances(build_adjacency(map_data), map_data["goal"])[player_start]
+            raise ValueError(
+                "Player start %r is only %d hop(s) from the goal %r; it must be at least %d. "
+                "Allowed starts: %s" % (player_start, hops, map_data["goal"], min_hops, ", ".join(allowed)))
 
 
-def pick_ai_start(map_data, player_start, seed=None):
+def pick_ai_start(map_data, player_start, seed=None, min_hops=0):
     """
     Check the player's start (see validate_player_start), then pick the
     Proctor's random start node: any node except the player's start and the
     goal. A fixed `seed` always gives the same answer.
     """
-    validate_player_start(map_data, player_start)
+    validate_player_start(map_data, player_start, min_hops=min_hops)
     node_ids = [node["id"] for node in map_data["nodes"]]
     candidates = [n for n in node_ids if n != player_start and n != map_data["goal"]]
     if not candidates:
@@ -176,11 +239,18 @@ class GameState:
     # -- rules --------------------------------------------------------------
 
     def legal_moves(self):
-        """Node ids the side to move may go to: waiting (current node) first, then neighbors."""
+        """
+        Node ids the side to move may go to.
+          Student: waiting (current node) first, then neighbors.
+          Proctor: neighbors only (no waiting). If the Proctor has no neighbor
+          at all, it is allowed to stay put so the game can continue.
+        """
         if self.is_terminal():
             return []
-        here = self.student if self.to_move == STUDENT else self.proctor
-        return [here] + list(self.adj[here])
+        if self.to_move == STUDENT:
+            return [self.student] + list(self.adj[self.student])
+        neighbors = list(self.adj[self.proctor])
+        return neighbors if neighbors else [self.proctor]
 
     def apply(self, move):
         """Return a NEW state after the side to move goes to `move`."""

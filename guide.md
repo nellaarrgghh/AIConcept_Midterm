@@ -10,11 +10,11 @@ A Human vs. AI chase game on the ITS Sukolilo map. The human is a Student racing
 | Human role | Student: reach the Department of Informatics |
 | AI role | Proctor/TA: catch the Student |
 | Map | ITS Sukolilo only |
-| Starting positions | The player chooses their start node. The AI starts on a random node (not the player's node and not Informatics) |
-| Difficulty | Easy: UCS. Medium: Minimax. Hard: Alpha-Beta |
-| Moves | Alternating turns, the player first. Each turn: move along one edge, or wait |
+| Starting positions | The player chooses their start node (at least 2 hops from the goal). The AI starts on a random node (not the player's node and not Informatics) |
+| Difficulty | Easy: UCS. Medium: Minimax (depth 3). Hard: Alpha-Beta (iterative deepening, 1s budget, capped at remaining plies) |
+| Moves | Alternating turns, the player first. Each turn: Student moves along one edge or waits. Proctor must move to an adjacent neighbor (cannot wait) |
 | Student wins | Reaches Informatics before the turn limit |
-| Proctor wins | Lands on the Student's node, or the turn limit runs out |
+| Proctor wins | Lands on the Student's node, Student steps onto Proctor, or the turn limit ($T = 6$) runs out |
 | Edge cost | Real walking distance in meters, from OpenStreetMap |
 
 Nothing else is in the game: no rain, no shade, no partial information.
@@ -25,11 +25,11 @@ Nothing else is in the game: no rain, no shade, no partial information.
 
 | Level | Algorithm | How the Proctor plays |
 | --- | --- | --- |
-| Easy | UCS | Each turn, finds the cheapest path to the Student's current node and takes the first step. It never predicts the Student's reply, so detours beat it |
-| Medium | Minimax | Depth-limited game tree (depth 2 to 3). Considers the Student's replies, but misses longer traps |
-| Hard | Alpha-Beta | Same decisions as Minimax, with pruning, so it reaches a deeper depth (4 to 6, or about 1 second per move with iterative deepening) |
+| Easy | UCS | Each turn, finds the cheapest meter path to the Student's current node and takes the first step. It never predicts the Student's reply, so detours beat it |
+| Medium | Minimax | Depth-limited game tree (fixed depth 3). Considers the Student's replies, but misses longer traps |
+| Hard | Alpha-Beta | Same decisions as Minimax, with pruning, plus iterative deepening (1-second time limit, capped at remaining plies until turn limit $T = 6$) |
 
-**Evaluation function** (used by Minimax and Alpha-Beta), from the Student's view: distance(Proctor, Student) minus distance(Student, Informatics). The Student maximizes it and the Proctor minimizes it. Distances come from Dijkstra on the map, computed once and cached.
+**Evaluation function** (used by Minimax and Alpha-Beta), from the Student's view: hop_distance(Proctor, Student) minus hop_distance(Student, Informatics). The Student maximizes it and the Proctor minimizes it. Distances come from an all-pairs BFS hop table on the map, computed once and cached. Win/loss terminal scores are depth-dependent (a faster catch is rewarded), and root ties prefer moving closer to the Student.
 
 **Key point for the report:** Minimax and Alpha-Beta choose identical moves at the same depth. Alpha-Beta is stronger only because pruning lets it search deeper in the same time. Compare them on nodes expanded, time per move, and depth reached.
 
@@ -57,11 +57,11 @@ The start nodes are not in the file. The player picks theirs and the server pick
 
 | Endpoint | Purpose |
 | --- | --- |
-| GET /map | Returns the map file |
-| POST /new\_game | Takes difficulty and player\_start. Picks a random AI start. Returns the initial state |
+| GET /map | Returns the map file, plus `turn_limit` (6), `allowed_starts`, and `min_start_hops` (2) |
+| POST /new\_game | Takes difficulty and player\_start ($\ge 2$ hops from goal). Picks a random AI start. Returns the initial state with `turn_limit` and `allowed_starts` |
 | POST /move | Takes state and the human's move. Applies it, the AI replies, returns the new state and ai\_move |
 
-**State:** turn, student, proctor, to\_move, winner. The server is stateless, so the browser sends the state back with each move.
+**State:** turn, student, proctor, to\_move, winner, turn_limit. The server is stateless, so the browser sends the state back with each move.
 
 **Agent interface:** every agent has choose\_move(state) and returns a node id.
 
@@ -141,7 +141,7 @@ Credit OpenStreetMap contributors (ODbL license) in the references.
 
 ### BE-2: Agents
 
-1. **Day 1:** write the evaluation function and a cached all-pairs shortest-distance table (Dijkstra from every node).
+1. **Day 1:** write the evaluation function and a cached all-pairs shortest BFS hop-distance table.
 2. **Day 1:** write Minimax with a depth limit and a node counter. The Student maximizes and the Proctor minimizes.
 3. **Day 2 AM:** write Alpha-Beta by adding the cutoffs. Test that it returns the same move as Minimax on 100 random states at the same depth.
 4. **Day 2 AM:** write the UCS agent: UCS to the Student's node, then take the first step.
