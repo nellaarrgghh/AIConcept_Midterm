@@ -1,6 +1,6 @@
 """
 Alpha-Beta pruning decision agent with optional
-iterative deepening for Campus Pursuit (BE-2).
+iterative deepening.
 
 Scoring and root tie-breaking are shared with MinimaxAgent (see
 agents/evaluation.py), so at the same fixed depth both agents choose the same

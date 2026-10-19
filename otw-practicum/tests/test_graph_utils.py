@@ -1,5 +1,5 @@
 """
-Tests for engine/graph_utils.py (BE-1).
+Tests for engine/graph_utils.py (Nel).
 Run from otw-practicum/: python -m pytest tests/test_graph_utils.py
 """
 

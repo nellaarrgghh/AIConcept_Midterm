@@ -1,5 +1,5 @@
 """
-Campus Pursuit Flask API (owned by BE-1). Stateless: the browser keeps the
+Campus Pursuit Flask API (owned by Nel). Stateless: the browser keeps the
 game state and sends it back with every move. See docs/interface.md.
 
 Run (from otw-practicum/, with the venv active):
@@ -309,5 +309,7 @@ def move():
 
 
 if __name__ == "__main__":
-    print("[server] map %s, turn limit %d, seed %d" % (MAP_PATH, TURN_LIMIT, SEED))
-    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", "5001")), debug=False)
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", "5001"))
+    print("[server] map %s, turn limit %d, seed %d, listening on %s:%d" % (MAP_PATH, TURN_LIMIT, SEED, host, port))
+    app.run(host=host, port=port, debug=False)

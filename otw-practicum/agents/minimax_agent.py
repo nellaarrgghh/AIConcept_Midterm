@@ -1,6 +1,5 @@
 """
-Minimax decision-making agent utilizing fixed-depth search
-for Campus Pursuit (BE-2).
+Minimax decision-making agent utilizing fixed-depth search.
 
 Scoring and root tie-breaking are shared with AlphaBetaAgent (see
 agents/evaluation.py) so both agents choose identical moves at equal depth:

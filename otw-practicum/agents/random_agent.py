@@ -1,5 +1,5 @@
 """
-Random agent (owned by BE-1).
+Random agent.
 
 Picks a uniformly random legal move (including waiting). Works for either
 side, since it just uses whatever side is to move in the state. Used as a

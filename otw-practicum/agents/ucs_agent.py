@@ -1,6 +1,6 @@
 """
 Uniform Cost Search (UCS) baseline agent using
-shortest-path navigation for Campus Pursuit (BE-2).
+shortest-path navigation for the game. 
 """
 
 import networkx as nx

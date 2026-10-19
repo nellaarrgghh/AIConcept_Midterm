@@ -1,5 +1,5 @@
 """
-Tests for engine/game_state.py (BE-1).
+Tests for engine/game_state.py (Nel).
 Run from otw-practicum/:  python -m pytest
 """
 

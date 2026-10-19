@@ -1,10 +1,10 @@
 """
-Campus Pursuit game engine (owned by BE-1).
+Campus Pursuit game engine (NEL).
 
 This file is the single source of truth for the rules. The web page and the
 agents never re-implement them; they only call the methods below.
 
-Rules (frozen, see guide.md section 1 and docs/interface.md):
+Rules:
   * Two pieces on an undirected graph: the Student (human) and the Proctor (AI).
   * Alternating turns, the Student moves first. A move is a node id: a
     neighbor of the current node. The Student may also wait (move to its own
@@ -33,9 +33,7 @@ PROCTOR = "proctor"
 DEFAULT_MIN_START_HOPS = 2
 
 
-# ---------------------------------------------------------------------------
 # Map helpers
-# ---------------------------------------------------------------------------
 
 def load_map(path):
     """Read a map JSON file and return it as a dict."""
@@ -200,10 +198,8 @@ def pick_ai_start(map_data, player_start, seed=None, min_hops=0):
     return rng.choice(candidates)
 
 
-# ---------------------------------------------------------------------------
-# GameState
-# ---------------------------------------------------------------------------
 
+# GameState
 class GameState:
     """
     One position in the game. Treat it as immutable: apply() returns a NEW
@@ -214,9 +210,9 @@ class GameState:
     all states of a game and must never be modified.
     """
 
-    # __slots__ keeps each state small, which helps when agents create
+    # slots keeps each state small, which helps when agents create
     # thousands of states during a search.
-    __slots__ = ("adj", "goal", "student", "proctor", "to_move", "turn", "turn_limit")
+    slots = ("adj", "goal", "student", "proctor", "to_move", "turn", "turn_limit")
 
     def __init__(self, adj, goal, student, proctor, to_move=STUDENT, turn=0, turn_limit=None):
         self.adj = adj
@@ -236,7 +232,7 @@ class GameState:
                 raise ValueError("Unknown %s start %r" % (name, node))
         return cls(adj, map_data["goal"], student, proctor, STUDENT, 0, turn_limit)
 
-    # -- rules --------------------------------------------------------------
+    # -- rules 
 
     def legal_moves(self):
         """
@@ -253,7 +249,7 @@ class GameState:
         return neighbors if neighbors else [self.proctor]
 
     def apply(self, move):
-        """Return a NEW state after the side to move goes to `move`."""
+        """Return a new state after the side to move goes to `move`."""
         if move not in self.legal_moves():
             raise ValueError("Illegal move %r for %s" % (move, self.to_move))
         new = self.copy()
@@ -291,6 +287,6 @@ class GameState:
             return 0
         return 1 if w == player else -1
 
-    def __repr__(self):
+    def repr(self):
         return ("GameState(turn=%d/%d, student=%r, proctor=%r, to_move=%r)"
                 % (self.turn, self.turn_limit, self.student, self.proctor, self.to_move))

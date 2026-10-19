@@ -1,6 +1,6 @@
 """
 Precomputed hop-based heuristic evaluation function
-for game tree searches (BE-2).
+for game tree searches.
 """
 
 import networkx as nx

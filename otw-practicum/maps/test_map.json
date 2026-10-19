@@ -1,5 +1,5 @@
 {
-  "_comment": "STUB test map written by BE-1 for engine tests. Not the real campus. FE-1 replaces it with maps/its_sukolilo.json (same format).",
+  "_comment": "STUB test map written by Nel for engine tests. Not the real campus. Nuara replaces it with maps/its_sukolilo.json (same format).",
   "nodes": [
     {"id": "gate_main",   "x": 100, "y": 350},
     {"id": "library",     "x": 350, "y": 150},

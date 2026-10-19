@@ -1,5 +1,5 @@
 """
-Random vs. Random sanity check (BE-1).
+Random vs. Random sanity check (Nel).
 
 Plays N games on a map with random start pairs (Student start drawn from the
 allowed starts, Proctor start from pick_ai_start) and prints win counts and

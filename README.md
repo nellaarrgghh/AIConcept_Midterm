@@ -4,9 +4,9 @@ Turn-based Human (Student) vs. AI (Proctor) chase game on an 11-node graph of th
 
 | NRP | Name | Role |
 | --- | --- | --- |
-| 5025251258 | Naila Sa'ada Cahyani | BE-1 (Engine Lead, Server, Visuals) |
-| 5025251171 | Daniel Pedrosaputra | BE-2 (Agents, Tournament, Plots) |
-| 5025251001 | Naura Rizky Ameira | FE-1 (Map Dataset & Visuals) |
+| 5025251258 | Naila Sa'ada Cahyani | Nel (Engine Lead, Server, Visuals) |
+| 5025251171 | Daniel Pedrosaputra | Lina (Agents, Tournament, Plots) |
+| 5025251001 | Naura Rizky Ameira | Nuara (Map Dataset & Visuals) |
 | 5025251168 | Lina Fatima Azzahra | FE-2 (Web UI & Interaction) |
 
 ---

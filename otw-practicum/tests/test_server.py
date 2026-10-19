@@ -1,5 +1,5 @@
 """
-Tests for server.py (BE-1), using Flask's test client (no real server needed).
+Tests for server.py (Nel), using Flask's test client (no real server needed).
 Run from otw-practicum/:  python -m pytest tests/test_server.py
 """
 
